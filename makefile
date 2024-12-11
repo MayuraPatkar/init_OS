@@ -1,51 +1,46 @@
-# Directories
 SRC_DIR = ./src
 BIN_DIR = ./bin
 
-# Files
 BOOT = $(SRC_DIR)/boot.asm
-KERNEL = $(SRC_DIR)/kernel.asm
+KERNEL = $(SRC_DIR)/kernel.cpp
+LINKER = $(SRC_DIR)/linker.ld
+
 BOOT_BIN = $(BIN_DIR)/boot.bin
+KERNEL_ELF = $(BIN_DIR)/kernel.elf
 KERNEL_BIN = $(BIN_DIR)/kernel.bin
 DISK_IMG = $(BIN_DIR)/disk.img
 
-# Tools
 ASM = nasm
 ASM_FLAGS = -f bin
+
 CXX = x86_64-linux-gnu-g++
+CXX_FLAGS = -m32 -ffreestanding -fno-exceptions -fno-rtti -O2
+LD_FLAGS = -nodefaultlibs -nostdlib -lgcc
+
 EMU = qemu-system-x86_64
 
-# Targets
 all: $(DISK_IMG)
 
-# Ensure bin directory exists
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-# Assemble bootloader
 $(BOOT_BIN): $(BOOT) $(BIN_DIR)
 	$(ASM) $(ASM_FLAGS) -o $@ $<
 
-# Assemble bootloader
-$(KERNEL_BIN): $(KERNEL)
-	$(ASM) $(ASM_FLAGS) -o $@ $<
+$(KERNEL_ELF): $(KERNEL) $(LINKER) $(BIN_DIR)
+	$(CXX) $(CXX_FLAGS) -T $(LINKER) -o $@ $< $(LD_FLAGS)
 
-# Compile kernel cpp
-# $(KERNEL_BIN): $(KERNEL) $(BIN_DIR)
-# 	$(CXX) $< -o $@
+$(KERNEL_BIN): $(KERNEL_ELF)
+	objcopy -O binary $< $@
 
-# Combine bootloader and kernel into disk image
 $(DISK_IMG): $(BOOT_BIN) $(KERNEL_BIN)
 	cat $(BOOT_BIN) $(KERNEL_BIN) > $@
 
-# Run OS in QEMU
 run: $(DISK_IMG)
 	$(EMU) -drive format=raw,file=$(DISK_IMG)
 
-# Clean build files
 clean:
-	rm -rf $(BIN_DIR)/*.bin $(BIN_DIR)/*.img
+	rm -rf $(BIN_DIR)/*.bin $(BIN_DIR)/*.img $(BIN_DIR)/*.elf
 	@rmdir $(BIN_DIR) 2>/dev/null || true
 
-# Phony targets
 .PHONY: all run clean

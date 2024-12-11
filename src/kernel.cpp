@@ -1,28 +1,30 @@
-#include <iostream>
-#include <cstring>
+// Declare the entry point of the kernel
+extern "C" void kernel_main() {
+    // VGA text mode buffer starts at 0xB8000
+    char* vga_buffer = (char*)0xB8000;
 
-const char* msg = "Kernel Loaded!";
-const int msg_len = std::strlen(msg);
+    // Message to display
+    const char* message = "Hello, kernel!";
 
-void write_to_video_memory() {
-    // Simulate writing to video memory (for example, in a console with attributes)
-    unsigned char* video_memory = reinterpret_cast<unsigned char*>(0xB8000); // Video memory start
+    // VGA uses 2 bytes per character: 1 for the character, 1 for the attribute (color)
+    const char attribute_byte = 0x0F; // White text on black background
+    int index = 0;
 
-    // Write the message character by character
-    for (int i = 0; i < msg_len; ++i) {
-        video_memory[2 * i] = msg[i];      // Character
-        video_memory[2 * i + 1] = 0x07;    // White on black attribute
+    // Clear screen
+    for (int i = 0; i < 80 * 25 * 2; i += 2) {
+        vga_buffer[i] = ' ';        // Empty space
+        vga_buffer[i + 1] = 0x07;   // Gray text on black background
     }
-}
 
-int main() {
-    // Set up video memory with a message
-    write_to_video_memory();
+    // Write the message to the top-left corner of the screen
+    while (message[index] != '\0') {
+        vga_buffer[index * 2] = message[index];     // Character byte
+        vga_buffer[index * 2 + 1] = attribute_byte; // Attribute byte
+        index++;
+    }
 
-    // Loop forever to simulate the 'halt' and avoid exiting the program
+    // Hang the CPU (halt execution)
     while (true) {
-        // This can be replaced with any logic to simulate the halted state
+        __asm__("hlt"); // Assembly instruction to halt the CPU
     }
-
-    return 0;
 }

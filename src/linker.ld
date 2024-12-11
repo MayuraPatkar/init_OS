@@ -1,11 +1,20 @@
+ENTRY(kernel_main) /* Entry point of the kernel */
+
+PHDRS {
+    text PT_LOAD FLAGS(0x5); /* Executable and readable */
+    data PT_LOAD FLAGS(0x6); /* Writable and readable */
+}
+
 SECTIONS {
-    /* Place the bootloader at 0x7C00 (BIOS loads it here by default) */
-    .bootloader 0x7C00 : {
-        *(.bootloader)
+    /* Code and read-only data */
+    .text 0x10000 :text AT(0x10000) {
+        *(.text)
+        *(.rodata)
     }
 
-    /* Place the kernel at 0x10000 */
-    .kernel 0x10000 : {
-        *(.kernel)
+    /* Writable data and BSS (uninitialized data) */
+    .data :data AT(ADDR(.text) + SIZEOF(.text)) {
+        *(.data)
+        *(.bss COMMON)
     }
 }
